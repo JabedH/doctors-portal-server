@@ -40,11 +40,39 @@ async function run() {
       .collection("services");
     const bookingCollection = client.db("doctors_portal").collection("booking");
     const userCollection = client.db("doctors_portal").collection("users");
+
+    // only for admin section
+    app.get("/admin/:email", async (req, res) => {
+      console.log("admin rout");
+      const email = req.params.email;
+      const user = await userCollection.findOne({ email: email });
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
+    });
+    // make an admin
+    app.put("/users/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const requester = req.decoded.email; // this is a last part of admin
+      const requesterAccount = await userCollection.findOne({
+        email: requester,
+      });
+      if (requesterAccount.role === "admin") {
+        const filter = { email: email };
+        const updateDoc = {
+          $set: { role: "admin" },
+        };
+        const result = await userCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      } else {
+        res.status(403).send({ message: "forbidden" });
+      }
+    });
+
     // put user information
-    app.put("/user/:email", async (req, res) => {
+    app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
-      const filter = { title: email };
+      const filter = { email: email };
       const options = { upsert: true };
       const updateDoc = {
         $set: user,
@@ -54,6 +82,11 @@ async function run() {
         expiresIn: "10d",
       });
       res.send({ result, token });
+    });
+
+    app.get("/users", verifyJWT, async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users);
     });
 
     app.get("/service", async (req, res) => {
