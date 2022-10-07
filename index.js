@@ -96,9 +96,7 @@ async function run() {
         $set: user,
       };
       const result = await userCollection.updateOne(filter, updateDoc, options);
-      const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, {
-        expiresIn: "10d",
-      });
+      const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN); // {expiresIn: "10d",}
       res.send({ result, token });
     });
 
@@ -107,7 +105,7 @@ async function run() {
       res.send(users);
     });
 
-    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+    app.post("/create-payment-intent", async (req, res) => {
       const service = req.body;
       const price = service.price;
       const amount = price * 100;
